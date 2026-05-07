@@ -1,0 +1,65 @@
+{
+  "name": "tradingview-mcp",
+  "version": "0.1.0",
+  "description": "Type-safe MCP server for controlling TradingView Desktop from Claude Code via Chrome DevTools Protocol.",
+  "type": "module",
+  "bin": {
+    "tradingview-mcp": "./dist/index.js",
+    "tv-mcp": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "doctor": "node dist/cli/doctor.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "tradingview",
+    "claude",
+    "anthropic",
+    "trading",
+    "pine-script",
+    "chart-automation",
+    "cdp"
+  ],
+  "author": "Harshil Patel <harshilpatel1522@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harshil1502/tradingview-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/harshil1502/tradingview-mcp/issues"
+  },
+  "homepage": "https://github.com/harshil1502/tradingview-mcp#readme",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "chrome-remote-interface": "^0.33.2",
+    "zod": "^3.24.0",
+    "zod-to-json-schema": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/chrome-remote-interface": "^0.31.14",
+    "@types/node": "^22.10.0",
+    "@vitest/coverage-v8": "^2.1.8",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
