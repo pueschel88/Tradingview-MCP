@@ -22,6 +22,54 @@ export interface ChartState {
   lastPrice: number | null;
 }
 
+/** Real-time quote snapshot for the current symbol. */
+export interface Quote {
+  symbol: Symbol;
+  last: number | null;
+  /** Bid/ask are not reliably exposed in the TV page — null on most instruments. */
+  bid: number | null;
+  ask: number | null;
+  dayHigh: number | null;
+  dayLow: number | null;
+  dayOpen: number | null;
+  dayClose: number | null;
+  volume: number | null;
+  /** ISO timestamp at the moment the snapshot was taken (client clock). */
+  timestamp: string;
+}
+
+/** Pine Editor source + parsed metadata. */
+export interface PineSource {
+  code: string;
+  /** Script name parsed from `//@title <name>` comment, if present. */
+  scriptName: string | null;
+  /** Pine version parsed from `//@version=<n>` directive, if present. */
+  pineVersion: string | null;
+}
+
+/** A single compile diagnostic from the Pine compiler. */
+export interface PineDiagnostic {
+  severity: 'error' | 'warning' | 'info';
+  line: number | null;
+  column: number | null;
+  message: string;
+}
+
+/** Result of a Pine compile attempt. */
+export interface PineCompileResult {
+  ok: boolean;
+  diagnostics: PineDiagnostic[];
+}
+
+/** A captured screenshot. */
+export interface Screenshot {
+  format: 'png';
+  /** Base64-encoded PNG, no `data:` URI prefix. */
+  data: string;
+  width: number;
+  height: number;
+}
+
 /** Map our internal Timeframe enum to TradingView's resolution string. */
 const TIMEFRAME_TO_TV: Record<Timeframe, string> = {
   '1m': '1',
@@ -170,5 +218,194 @@ export class TradingViewPage {
     }>(expr);
     if (r.error) throw new ChartStateError(r.error);
     return r.bars ?? [];
+  }
+
+  // ---------------------------------------------------------------------------
+  // QUOTE
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Real-time quote snapshot for the active symbol. Bid/ask are usually
+   * unavailable in the page context; we surface what we can read.
+   */
+  async getQuote(): Promise<Quote> {
+    const expr = `
+      (() => {
+        const w = window.tvWidget;
+        if (!w?.activeChart) return { error: 'tvWidget not available' };
+        const chart = w.activeChart();
+        const symbol = chart.symbol();
+        const series = chart.getSeries?.();
+        const data = series?.data?.() ?? [];
+        const last = series?.lastPrice?.() ?? null;
+        const lastBar = data[data.length - 1] ?? null;
+        return {
+          symbol,
+          last,
+          bid: null,
+          ask: null,
+          dayHigh: lastBar?.high ?? null,
+          dayLow: lastBar?.low ?? null,
+          dayOpen: lastBar?.open ?? null,
+          dayClose: lastBar?.close ?? null,
+          volume: lastBar?.volume ?? null,
+          timestamp: new Date().toISOString(),
+        };
+      })()
+    `;
+    const r = await this.cdp.evaluate<{ error?: string } & Quote>(expr);
+    if (r.error) throw new ChartStateError(r.error);
+    return r;
+  }
+
+  // ---------------------------------------------------------------------------
+  // PINE
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Locate the Pine Editor instance among Monaco editors on the page.
+   * The Pine Editor is the Monaco instance whose language id is `pinescript`.
+   * Falls back to the first Monaco editor if language id detection fails.
+   */
+  private static readonly LOCATE_PINE_EDITOR_JS = `
+    (() => {
+      const monaco = window.monaco;
+      if (!monaco?.editor?.getEditors) return null;
+      const editors = monaco.editor.getEditors();
+      if (!editors.length) return null;
+      const pine = editors.find(e => {
+        try {
+          return e.getModel?.()?.getLanguageId?.() === 'pinescript';
+        } catch (_) { return false; }
+      });
+      return pine ?? editors[0];
+    })()
+  `;
+
+  /** Read the current Pine Editor source. */
+  async getPineSource(): Promise<PineSource> {
+    const expr = `
+      (() => {
+        const editor = ${TradingViewPage.LOCATE_PINE_EDITOR_JS};
+        if (!editor) return { error: 'Pine Editor not found — is it open?' };
+        const code = editor.getValue();
+        const titleMatch = code.match(/\\/\\/\\s*@title\\s+(.+)/);
+        const versionMatch = code.match(/\\/\\/\\s*@version\\s*=\\s*(\\d+)/);
+        return {
+          code,
+          scriptName: titleMatch ? titleMatch[1].trim() : null,
+          pineVersion: versionMatch ? versionMatch[1] : null,
+        };
+      })()
+    `;
+    const r = await this.cdp.evaluate<{ error?: string } & PineSource>(expr);
+    if (r.error) throw new ChartStateError(r.error);
+    return {
+      code: r.code,
+      scriptName: r.scriptName,
+      pineVersion: r.pineVersion,
+    };
+  }
+
+  /** Replace the Pine Editor contents with new source. */
+  async setPineSource(code: string): Promise<void> {
+    const escaped = JSON.stringify(code);
+    const expr = `
+      (() => {
+        const editor = ${TradingViewPage.LOCATE_PINE_EDITOR_JS};
+        if (!editor) return { error: 'Pine Editor not found' };
+        editor.setValue(${escaped});
+        return { ok: true };
+      })()
+    `;
+    const r = await this.cdp.evaluate<{ error?: string; ok?: boolean }>(expr);
+    if (r.error) throw new ChartStateError(r.error);
+  }
+
+  /**
+   * Trigger a Pine compile and read diagnostics from Monaco's marker model.
+   * TradingView populates Monaco markers when Pine fails to compile.
+   */
+  async compilePine(): Promise<PineCompileResult> {
+    const expr = `
+      (async () => {
+        const editor = ${TradingViewPage.LOCATE_PINE_EDITOR_JS};
+        if (!editor) return { error: 'Pine Editor not found' };
+        // Trigger save/compile via the editor's save action when available.
+        try {
+          editor.getAction?.('editor.action.save')?.run?.();
+        } catch (_) { /* ignore — compile is best-effort */ }
+        // Give TradingView a moment to populate markers.
+        await new Promise(r => setTimeout(r, 600));
+        const model = editor.getModel?.();
+        const markers = model
+          ? window.monaco.editor.getModelMarkers({ resource: model.uri })
+          : [];
+        const diagnostics = markers.map(m => ({
+          severity:
+            m.severity === 8 ? 'error'
+            : m.severity === 4 ? 'warning'
+            : 'info',
+          line: m.startLineNumber ?? null,
+          column: m.startColumn ?? null,
+          message: m.message ?? '',
+        }));
+        return {
+          ok: !diagnostics.some(d => d.severity === 'error'),
+          diagnostics,
+        };
+      })()
+    `;
+    const r = await this.cdp.evaluate<
+      { error?: string } & PineCompileResult
+    >(expr);
+    if (r.error) throw new ChartStateError(r.error);
+    return { ok: r.ok, diagnostics: r.diagnostics };
+  }
+
+  /**
+   * Save the current Pine script. In TradingView, save commits the script
+   * and triggers compile + chart reload. Equivalent to Cmd/Ctrl+S in the
+   * Pine Editor.
+   */
+  async savePine(): Promise<void> {
+    const expr = `
+      (() => {
+        const editor = ${TradingViewPage.LOCATE_PINE_EDITOR_JS};
+        if (!editor) return { error: 'Pine Editor not found' };
+        try {
+          editor.getAction?.('editor.action.save')?.run?.();
+          return { ok: true };
+        } catch (e) {
+          return { error: 'Save action not available on this editor instance' };
+        }
+      })()
+    `;
+    const r = await this.cdp.evaluate<{ error?: string; ok?: boolean }>(expr);
+    if (r.error) throw new ChartStateError(r.error);
+  }
+
+  // ---------------------------------------------------------------------------
+  // SCREENSHOT
+  // ---------------------------------------------------------------------------
+
+  /** Capture the full TradingView viewport as a base64 PNG. */
+  async screenshotFull(): Promise<Screenshot> {
+    const data = await this.cdp.screenshot();
+    const dims = await this.cdp.evaluate<{ width: number; height: number }>(
+      `({ width: window.innerWidth, height: window.innerHeight })`,
+    );
+    return { format: 'png', data, width: dims.width, height: dims.height };
+  }
+
+  /**
+   * Capture only the chart pane. v0.1 returns the full viewport — clipping
+   * to the chart canvas is on the roadmap once we standardize the selector
+   * across TradingView Desktop versions.
+   */
+  async screenshotChart(): Promise<Screenshot> {
+    // TODO(v0.2): clip to `.chart-container` bounding rect via CDP
+    // Page.captureScreenshot `clip` parameter once selector is stable.
+    return this.screenshotFull();
   }
 }

@@ -1,8 +1,11 @@
-#!/usr/bin/env node
 /**
  * `tradingview-mcp doctor` — runs a series of checks and prints a clear
  * report of what's working and what isn't. Designed to be the first thing
  * a frustrated user runs.
+ *
+ * Exposed as both:
+ *   - `runDoctor()` for invocation from src/index.ts dispatcher
+ *   - direct CLI execution (for `node dist/cli/doctor.js`)
  */
 
 import CDP from 'chrome-remote-interface';
@@ -15,31 +18,42 @@ interface CheckResult {
   detail: string;
 }
 
-const HOST = process.env.TV_MCP_HOST ?? 'localhost';
-const PORT = process.env.TV_MCP_PORT ? parseInt(process.env.TV_MCP_PORT, 10) : 9222;
+function readConfig(): { host: string; port: number } {
+  const host = process.env.TV_MCP_HOST ?? 'localhost';
+  const port = process.env.TV_MCP_PORT
+    ? parseInt(process.env.TV_MCP_PORT, 10)
+    : 9222;
+  return { host, port };
+}
 
-async function checkCdpEndpoint(): Promise<CheckResult> {
+async function checkCdpEndpoint(
+  host: string,
+  port: number,
+): Promise<CheckResult> {
   try {
-    const targets = await CDP.List({ host: HOST, port: PORT });
+    const targets = await CDP.List({ host, port });
     return {
       name: 'CDP endpoint reachable',
       ok: true,
-      detail: `${HOST}:${PORT} · ${targets.length} target(s)`,
+      detail: `${host}:${port} · ${targets.length} target(s)`,
     };
-  } catch (cause) {
+  } catch {
     return {
       name: 'CDP endpoint reachable',
       ok: false,
       detail:
-        `${HOST}:${PORT} not reachable. ` +
-        `Is TradingView Desktop running with --remote-debugging-port=${PORT}?`,
+        `${host}:${port} not reachable. ` +
+        `Is TradingView Desktop running with --remote-debugging-port=${port}?`,
     };
   }
 }
 
-async function checkTradingViewPage(): Promise<CheckResult> {
+async function checkTradingViewPage(
+  host: string,
+  port: number,
+): Promise<CheckResult> {
   try {
-    const targets = (await CDP.List({ host: HOST, port: PORT })) as Array<{
+    const targets = (await CDP.List({ host, port })) as Array<{
       type: string;
       url: string;
       title: string;
@@ -62,7 +76,7 @@ async function checkTradingViewPage(): Promise<CheckResult> {
       ok: true,
       detail: tv.title || tv.url,
     };
-  } catch (cause) {
+  } catch {
     return {
       name: 'TradingView page found',
       ok: false,
@@ -71,12 +85,14 @@ async function checkTradingViewPage(): Promise<CheckResult> {
   }
 }
 
-async function checkTvWidget(): Promise<CheckResult> {
+async function checkTvWidget(
+  host: string,
+  port: number,
+): Promise<CheckResult> {
+  const cdp = new CdpClient({ host, port });
   try {
-    const cdp = new CdpClient({ host: HOST, port: PORT });
     const page = new TradingViewPage(cdp);
     const state = await page.getChartState();
-    await cdp.close();
     return {
       name: 'tvWidget detected — chart state readable',
       ok: true,
@@ -89,19 +105,26 @@ async function checkTvWidget(): Promise<CheckResult> {
       ok: false,
       detail: msg,
     };
+  } finally {
+    await cdp.close();
   }
 }
 
-async function main(): Promise<void> {
+/** Run all doctor checks and print a report. Returns true if everything is OK. */
+export async function runDoctor(): Promise<boolean> {
+  const { host, port } = readConfig();
+
   process.stdout.write('tradingview-mcp · doctor\n');
   process.stdout.write('─────────────────────────────────────────────\n');
 
   const checks: CheckResult[] = [];
-  checks.push(await checkCdpEndpoint());
-  if (checks[0]?.ok) {
-    checks.push(await checkTradingViewPage());
-    if (checks[1]?.ok) {
-      checks.push(await checkTvWidget());
+  const cdp = await checkCdpEndpoint(host, port);
+  checks.push(cdp);
+  if (cdp.ok) {
+    const tv = await checkTradingViewPage(host, port);
+    checks.push(tv);
+    if (tv.ok) {
+      checks.push(await checkTvWidget(host, port));
     }
   }
 
@@ -114,11 +137,20 @@ async function main(): Promise<void> {
   process.stdout.write('─────────────────────────────────────────────\n');
   const allOk = checks.every((c) => c.ok);
   process.stdout.write(allOk ? 'ready.\n' : 'not ready — see above.\n');
-  process.exit(allOk ? 0 : 1);
+  return allOk;
 }
 
-main().catch((err: unknown) => {
-  const msg = err instanceof Error ? err.message : String(err);
-  process.stderr.write(`doctor failed: ${msg}\n`);
-  process.exit(2);
-});
+// Direct execution: `node dist/cli/doctor.js`
+const isDirectInvocation =
+  import.meta.url === `file://${process.argv[1]}` ||
+  process.argv[1]?.endsWith('/cli/doctor.js') === true;
+
+if (isDirectInvocation) {
+  runDoctor()
+    .then((ok) => process.exit(ok ? 0 : 1))
+    .catch((err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      process.stderr.write(`doctor failed: ${msg}\n`);
+      process.exit(2);
+    });
+}
