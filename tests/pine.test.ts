@@ -11,6 +11,7 @@ import {
   pineSetSource,
 } from '../src/tools/pine.js';
 import type { TradingViewPage } from '../src/connection/tradingview.js';
+import type { ToolContext } from '../src/tools/context.js';
 
 function makeStubPage(overrides: Partial<TradingViewPage> = {}): TradingViewPage {
   const stub = {
@@ -23,6 +24,13 @@ function makeStubPage(overrides: Partial<TradingViewPage> = {}): TradingViewPage
   return stub as unknown as TradingViewPage;
 }
 
+function makeCtx(
+  page: TradingViewPage,
+  cache: ToolContext['cache'] = null,
+): ToolContext {
+  return { page, cache };
+}
+
 describe('pine_get_source', () => {
   test('returns Pine source from the page', async () => {
     const page = makeStubPage({
@@ -33,7 +41,7 @@ describe('pine_get_source', () => {
       }),
     });
 
-    const result = await pineGetSource({}, page);
+    const result = await pineGetSource({}, makeCtx(page));
 
     expect(result).toEqual({
       code: '//@version=5\nindicator("Test")\nplot(close)',
@@ -51,7 +59,7 @@ describe('pine_get_source', () => {
       }),
     });
 
-    const result = await pineGetSource({}, page);
+    const result = await pineGetSource({}, makeCtx(page));
 
     expect(result.scriptName).toBeNull();
     expect(result.pineVersion).toBeNull();
@@ -62,7 +70,7 @@ describe('pine_get_source', () => {
       getPineSource: vi.fn().mockRejectedValue(new Error('Editor not open')),
     });
 
-    await expect(pineGetSource({}, page)).rejects.toThrow(ToolExecutionError);
+    await expect(pineGetSource({}, makeCtx(page))).rejects.toThrow(ToolExecutionError);
   });
 });
 
@@ -73,7 +81,7 @@ describe('pine_set_source', () => {
     });
 
     const code = '//@version=5\nindicator("X")\nplot(close)';
-    const result = await pineSetSource({ code }, page);
+    const result = await pineSetSource({ code }, makeCtx(page));
 
     expect(result).toEqual({ ok: true, bytes: code.length });
     expect(page.setPineSource).toHaveBeenCalledWith(code);
@@ -85,7 +93,7 @@ describe('pine_set_source', () => {
     });
 
     await expect(
-      pineSetSource({ code: 'plot(close)' }, page),
+      pineSetSource({ code: 'plot(close)' }, makeCtx(page)),
     ).rejects.toThrow(ToolExecutionError);
   });
 });
@@ -106,7 +114,7 @@ describe('pine_compile', () => {
       }),
     });
 
-    const result = await pineCompile({}, page);
+    const result = await pineCompile({}, makeCtx(page));
 
     expect(result.ok).toBe(false);
     expect(result.diagnostics).toHaveLength(1);
@@ -121,7 +129,7 @@ describe('pine_compile', () => {
       }),
     });
 
-    const result = await pineCompile({}, page);
+    const result = await pineCompile({}, makeCtx(page));
     expect(result.ok).toBe(true);
     expect(result.diagnostics).toHaveLength(0);
   });
@@ -133,7 +141,7 @@ describe('pine_save', () => {
       savePine: vi.fn().mockResolvedValue(undefined),
     });
 
-    const result = await pineSave({}, page);
+    const result = await pineSave({}, makeCtx(page));
     expect(result).toEqual({ ok: true });
     expect(page.savePine).toHaveBeenCalled();
   });
@@ -143,6 +151,6 @@ describe('pine_save', () => {
       savePine: vi.fn().mockRejectedValue(new Error('Save action unavailable')),
     });
 
-    await expect(pineSave({}, page)).rejects.toThrow(ToolExecutionError);
+    await expect(pineSave({}, makeCtx(page))).rejects.toThrow(ToolExecutionError);
   });
 });

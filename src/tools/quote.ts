@@ -7,8 +7,9 @@
  */
 
 import { z } from 'zod';
+import { CACHE_KEYS, withCache } from '../connection/redis.js';
 import { ToolExecutionError } from '../errors.js';
-import type { TradingViewPage } from '../connection/tradingview.js';
+import type { ToolContext } from './context.js';
 
 export const quoteGetInput = z.object({}).strict();
 
@@ -27,10 +28,13 @@ export const quoteGetOutput = z.object({
 
 export async function quoteGet(
   _input: z.infer<typeof quoteGetInput>,
-  page: TradingViewPage,
+  ctx: ToolContext,
 ): Promise<z.infer<typeof quoteGetOutput>> {
   try {
-    return await page.getQuote();
+    const ttl = ctx.cache?.getConfig().ttl.quote ?? 5;
+    return await withCache(ctx.cache, CACHE_KEYS.quote, ttl, () =>
+      ctx.page.getQuote(),
+    );
   } catch (cause) {
     throw new ToolExecutionError(
       'quote_get',

@@ -9,6 +9,7 @@ import {
   screenshotFull,
 } from '../src/tools/screenshot.js';
 import type { TradingViewPage } from '../src/connection/tradingview.js';
+import type { ToolContext } from '../src/tools/context.js';
 
 function makeStubPage(overrides: Partial<TradingViewPage> = {}): TradingViewPage {
   const stub = {
@@ -17,6 +18,13 @@ function makeStubPage(overrides: Partial<TradingViewPage> = {}): TradingViewPage
     ...overrides,
   };
   return stub as unknown as TradingViewPage;
+}
+
+function makeCtx(
+  page: TradingViewPage,
+  cache: ToolContext['cache'] = null,
+): ToolContext {
+  return { page, cache };
 }
 
 const MOCK_PNG = {
@@ -32,7 +40,7 @@ describe('screenshot_chart', () => {
       screenshotChart: vi.fn().mockResolvedValue(MOCK_PNG),
     });
 
-    const result = await screenshotChart({}, page);
+    const result = await screenshotChart({}, makeCtx(page));
     expect(result.format).toBe('png');
     expect(result.data).toBe(MOCK_PNG.data);
     expect(result.width).toBe(1920);
@@ -44,7 +52,7 @@ describe('screenshot_chart', () => {
       screenshotChart: vi.fn().mockRejectedValue(new Error('CDP closed')),
     });
 
-    await expect(screenshotChart({}, page)).rejects.toThrow(
+    await expect(screenshotChart({}, makeCtx(page))).rejects.toThrow(
       ToolExecutionError,
     );
   });
@@ -56,7 +64,7 @@ describe('screenshot_full', () => {
       screenshotFull: vi.fn().mockResolvedValue(MOCK_PNG),
     });
 
-    const result = await screenshotFull({}, page);
+    const result = await screenshotFull({}, makeCtx(page));
     expect(result.format).toBe('png');
     expect(result.data).toBe(MOCK_PNG.data);
   });
@@ -66,6 +74,6 @@ describe('screenshot_full', () => {
       screenshotFull: vi.fn().mockRejectedValue(new Error('CDP closed')),
     });
 
-    await expect(screenshotFull({}, page)).rejects.toThrow(ToolExecutionError);
+    await expect(screenshotFull({}, makeCtx(page))).rejects.toThrow(ToolExecutionError);
   });
 });

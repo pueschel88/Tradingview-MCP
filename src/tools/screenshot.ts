@@ -7,7 +7,7 @@
 
 import { z } from 'zod';
 import { ToolExecutionError } from '../errors.js';
-import type { TradingViewPage } from '../connection/tradingview.js';
+import type { ToolContext } from './context.js';
 
 const screenshotOutputSchema = z.object({
   format: z.literal('png'),
@@ -25,10 +25,10 @@ export const screenshotChartOutput = screenshotOutputSchema;
 
 export async function screenshotChart(
   _input: z.infer<typeof screenshotChartInput>,
-  page: TradingViewPage,
+  ctx: ToolContext,
 ): Promise<z.infer<typeof screenshotChartOutput>> {
   try {
-    return await page.screenshotChart();
+    return await ctx.page.screenshotChart();
   } catch (cause) {
     throw new ToolExecutionError(
       'screenshot_chart',
@@ -47,10 +47,10 @@ export const screenshotFullOutput = screenshotOutputSchema;
 
 export async function screenshotFull(
   _input: z.infer<typeof screenshotFullInput>,
-  page: TradingViewPage,
+  ctx: ToolContext,
 ): Promise<z.infer<typeof screenshotFullOutput>> {
   try {
-    return await page.screenshotFull();
+    return await ctx.page.screenshotFull();
   } catch (cause) {
     throw new ToolExecutionError(
       'screenshot_full',

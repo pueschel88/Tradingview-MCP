@@ -11,17 +11,24 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { CdpClient } from './connection/cdp.js';
+import {
+  RedisCache,
+  readRedisConfigFromEnv,
+  type RedisConnectOptions,
+} from './connection/redis.js';
 import { TradingViewPage } from './connection/tradingview.js';
 import { TOOLS } from './tools/index.js';
+import type { ToolContext } from './tools/context.js';
 import { CdpConnectOptionsSchema } from './types.js';
 
 export interface ServerOptions {
   cdpHost?: string;
   cdpPort?: number;
   cdpTargetId?: string;
+  redis?: RedisConnectOptions;
 }
 
-export function createServer(options: ServerOptions = {}): Server {
+export async function createServer(options: ServerOptions = {}): Promise<Server> {
   const cdpOpts = CdpConnectOptionsSchema.parse({
     host: options.cdpHost ?? 'localhost',
     port: options.cdpPort ?? 9222,
@@ -30,6 +37,22 @@ export function createServer(options: ServerOptions = {}): Server {
 
   const cdp = new CdpClient(cdpOpts);
   const page = new TradingViewPage(cdp);
+
+  const redisConfig = options.redis ?? readRedisConfigFromEnv();
+  const cache = new RedisCache(redisConfig);
+  const redisReady = await cache.connect();
+  if (redisConfig.enabled && !redisReady) {
+    process.stderr.write(
+      'tradingview-mcp: Redis unavailable — running without cache. ' +
+        `Expected ${redisConfig.host}:${redisConfig.port}. ` +
+        'Set TV_MCP_REDIS_ENABLED=false to silence this warning.\n',
+    );
+  }
+
+  const ctx: ToolContext = {
+    page,
+    cache: redisReady ? cache : null,
+  };
 
   const server = new Server(
     {
@@ -64,7 +87,7 @@ export function createServer(options: ServerOptions = {}): Server {
       );
     }
 
-    const result = await tool.handler(parsed.data, page);
+    const result = await tool.handler(parsed.data, ctx);
 
     return {
       content: [
@@ -79,6 +102,7 @@ export function createServer(options: ServerOptions = {}): Server {
   // Best-effort cleanup on process exit.
   const cleanup = () => {
     cdp.close().catch(() => undefined);
+    cache.close().catch(() => undefined);
   };
   process.on('SIGINT', cleanup);
   process.on('SIGTERM', cleanup);
@@ -88,7 +112,7 @@ export function createServer(options: ServerOptions = {}): Server {
 }
 
 export async function startStdioServer(options: ServerOptions = {}): Promise<void> {
-  const server = createServer(options);
+  const server = await createServer(options);
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }

@@ -4,9 +4,10 @@
  */
 
 import { z } from 'zod';
+import { CACHE_KEYS, withCache } from '../connection/redis.js';
 import { ToolExecutionError } from '../errors.js';
 import { TimeframeSchema } from '../types.js';
-import type { TradingViewPage } from '../connection/tradingview.js';
+import type { ToolContext } from './context.js';
 
 // -----------------------------------------------------------------------------
 // chart_get_state
@@ -22,10 +23,13 @@ export const chartGetStateOutput = z.object({
 
 export async function chartGetState(
   _input: z.infer<typeof chartGetStateInput>,
-  page: TradingViewPage,
+  ctx: ToolContext,
 ): Promise<z.infer<typeof chartGetStateOutput>> {
   try {
-    return await page.getChartState();
+    const ttl = ctx.cache?.getConfig().ttl.state ?? 5;
+    return await withCache(ctx.cache, CACHE_KEYS.chartState, ttl, () =>
+      ctx.page.getChartState(),
+    );
   } catch (cause) {
     throw new ToolExecutionError(
       'chart_get_state',
@@ -54,10 +58,11 @@ export const chartSetSymbolOutput = z.object({ symbol: z.string() });
 
 export async function chartSetSymbol(
   input: z.infer<typeof chartSetSymbolInput>,
-  page: TradingViewPage,
+  ctx: ToolContext,
 ): Promise<z.infer<typeof chartSetSymbolOutput>> {
   try {
-    const symbol = await page.setSymbol(input.symbol);
+    const symbol = await ctx.page.setSymbol(input.symbol);
+    await ctx.cache?.invalidateChartData();
     return { symbol };
   } catch (cause) {
     throw new ToolExecutionError(
@@ -86,10 +91,11 @@ export const chartSetTimeframeOutput = z.object({
 
 export async function chartSetTimeframe(
   input: z.infer<typeof chartSetTimeframeInput>,
-  page: TradingViewPage,
+  ctx: ToolContext,
 ): Promise<z.infer<typeof chartSetTimeframeOutput>> {
   try {
-    const timeframe = await page.setTimeframe(input.timeframe);
+    const timeframe = await ctx.page.setTimeframe(input.timeframe);
+    await ctx.cache?.invalidateChartData();
     return { timeframe };
   } catch (cause) {
     throw new ToolExecutionError(
@@ -131,11 +137,19 @@ export const chartGetOhlcvOutput = z.object({
 
 export async function chartGetOhlcv(
   input: z.infer<typeof chartGetOhlcvInput>,
-  page: TradingViewPage,
+  ctx: ToolContext,
 ): Promise<z.infer<typeof chartGetOhlcvOutput>> {
   try {
-    const bars = await page.getOhlcv(input.count);
-    return { bars };
+    const ttl = ctx.cache?.getConfig().ttl.ohlcv ?? 60;
+    return await withCache(
+      ctx.cache,
+      CACHE_KEYS.ohlcv(input.count),
+      ttl,
+      async () => {
+        const bars = await ctx.page.getOhlcv(input.count);
+        return { bars };
+      },
+    );
   } catch (cause) {
     throw new ToolExecutionError(
       'chart_get_ohlcv',

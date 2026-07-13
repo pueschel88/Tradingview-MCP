@@ -5,7 +5,7 @@
  */
 
 import type { z } from 'zod';
-import type { TradingViewPage } from '../connection/tradingview.js';
+import type { ToolContext } from './context.js';
 import {
   chartGetOhlcv,
   chartGetOhlcvInput,
@@ -59,7 +59,7 @@ export interface ToolDef<
   output: OutSchema;
   handler: (
     input: z.infer<InSchema>,
-    page: TradingViewPage,
+    ctx: ToolContext,
   ) => Promise<z.infer<OutSchema>>;
 }
 

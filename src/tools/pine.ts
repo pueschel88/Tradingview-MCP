@@ -9,7 +9,7 @@
 
 import { z } from 'zod';
 import { ToolExecutionError } from '../errors.js';
-import type { TradingViewPage } from '../connection/tradingview.js';
+import type { ToolContext } from './context.js';
 
 // -----------------------------------------------------------------------------
 // pine_get_source
@@ -24,10 +24,10 @@ export const pineGetSourceOutput = z.object({
 
 export async function pineGetSource(
   _input: z.infer<typeof pineGetSourceInput>,
-  page: TradingViewPage,
+  ctx: ToolContext,
 ): Promise<z.infer<typeof pineGetSourceOutput>> {
   try {
-    return await page.getPineSource();
+    return await ctx.page.getPineSource();
   } catch (cause) {
     throw new ToolExecutionError(
       'pine_get_source',
@@ -59,10 +59,10 @@ export const pineSetSourceOutput = z.object({
 
 export async function pineSetSource(
   input: z.infer<typeof pineSetSourceInput>,
-  page: TradingViewPage,
+  ctx: ToolContext,
 ): Promise<z.infer<typeof pineSetSourceOutput>> {
   try {
-    await page.setPineSource(input.code);
+    await ctx.page.setPineSource(input.code);
     return { ok: true, bytes: input.code.length };
   } catch (cause) {
     throw new ToolExecutionError(
@@ -92,10 +92,10 @@ export const pineCompileOutput = z.object({
 
 export async function pineCompile(
   _input: z.infer<typeof pineCompileInput>,
-  page: TradingViewPage,
+  ctx: ToolContext,
 ): Promise<z.infer<typeof pineCompileOutput>> {
   try {
-    return await page.compilePine();
+    return await ctx.page.compilePine();
   } catch (cause) {
     throw new ToolExecutionError(
       'pine_compile',
@@ -114,10 +114,10 @@ export const pineSaveOutput = z.object({ ok: z.literal(true) });
 
 export async function pineSave(
   _input: z.infer<typeof pineSaveInput>,
-  page: TradingViewPage,
+  ctx: ToolContext,
 ): Promise<z.infer<typeof pineSaveOutput>> {
   try {
-    await page.savePine();
+    await ctx.page.savePine();
     return { ok: true };
   } catch (cause) {
     throw new ToolExecutionError(

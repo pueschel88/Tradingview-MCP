@@ -4,6 +4,7 @@
 
 import { describe, expect, test, vi } from 'vitest';
 import { ToolExecutionError } from '../src/errors.js';
+import type { ToolContext } from '../src/tools/context.js';
 import { quoteGet } from '../src/tools/quote.js';
 import type { TradingViewPage } from '../src/connection/tradingview.js';
 
@@ -13,6 +14,13 @@ function makeStubPage(overrides: Partial<TradingViewPage> = {}): TradingViewPage
     ...overrides,
   };
   return stub as unknown as TradingViewPage;
+}
+
+function makeCtx(
+  page: TradingViewPage,
+  cache: ToolContext['cache'] = null,
+): ToolContext {
+  return { page, cache };
 }
 
 describe('quote_get', () => {
@@ -33,7 +41,7 @@ describe('quote_get', () => {
       getQuote: vi.fn().mockResolvedValue(snapshot),
     });
 
-    const result = await quoteGet({}, page);
+    const result = await quoteGet({}, makeCtx(page));
     expect(result).toEqual(snapshot);
   });
 
@@ -53,7 +61,7 @@ describe('quote_get', () => {
       }),
     });
 
-    const result = await quoteGet({}, page);
+    const result = await quoteGet({}, makeCtx(page));
     expect(result.last).toBeNull();
     expect(result.volume).toBeNull();
   });
@@ -63,6 +71,8 @@ describe('quote_get', () => {
       getQuote: vi.fn().mockRejectedValue(new Error('No chart loaded')),
     });
 
-    await expect(quoteGet({}, page)).rejects.toThrow(ToolExecutionError);
+    await expect(quoteGet({}, makeCtx(page))).rejects.toThrow(
+      ToolExecutionError,
+    );
   });
 });

@@ -10,6 +10,10 @@
 
 import CDP from 'chrome-remote-interface';
 import { CdpClient } from '../connection/cdp.js';
+import {
+  RedisCache,
+  readRedisConfigFromEnv,
+} from '../connection/redis.js';
 import { TradingViewPage } from '../connection/tradingview.js';
 
 interface CheckResult {
@@ -110,6 +114,40 @@ async function checkTvWidget(
   }
 }
 
+async function checkRedis(): Promise<CheckResult> {
+  const config = readRedisConfigFromEnv();
+  if (!config.enabled) {
+    return {
+      name: 'Redis cache',
+      ok: true,
+      detail: 'disabled (TV_MCP_REDIS_ENABLED=false)',
+    };
+  }
+
+  const cache = new RedisCache(config);
+  try {
+    const connected = await cache.connect();
+    if (!connected) {
+      return {
+        name: 'Redis cache reachable',
+        ok: false,
+        detail:
+          `${config.host}:${config.port} not reachable. ` +
+          'Start a local Redis server or set TV_MCP_REDIS_ENABLED=false.',
+      };
+    }
+
+    const pong = await cache.ping();
+    return {
+      name: 'Redis cache reachable',
+      ok: pong,
+      detail: `${config.host}:${config.port} · db ${config.db} · prefix "${config.keyPrefix}"`,
+    };
+  } finally {
+    await cache.close();
+  }
+}
+
 /** Run all doctor checks and print a report. Returns true if everything is OK. */
 export async function runDoctor(): Promise<boolean> {
   const { host, port } = readConfig();
@@ -127,6 +165,8 @@ export async function runDoctor(): Promise<boolean> {
       checks.push(await checkTvWidget(host, port));
     }
   }
+
+  checks.push(await checkRedis());
 
   for (const c of checks) {
     const tag = c.ok ? '[ok]  ' : '[fail]';

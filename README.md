@@ -63,23 +63,33 @@ Use this if you want a small, predictable surface you can read in an afternoon. 
 ---
 
 ## Install
-
-Requires Node.js 20+.
-
-```bash
-npm install -g tradingview-mcp
-# or, in a project:
-npm install tradingview-mcp
-```
-
 For development:
 
 ```bash
-git clone https://github.com/harshil1502/tradingview-mcp.git
-cd tradingview-mcp
+git clone https://github.com/pueschel88/Tradingview-MCP.git
+cd Tradingview-MCP
 npm install
 npm run build
 ```
+
+### Redis (optional, recommended)
+
+Read tools (`chart_get_state`, `quote_get`, `chart_get_ohlcv`) are cached in a local Redis instance to reduce CDP round-trips. Redis is enabled by default and connects to `127.0.0.1:6379`.
+
+**Windows (Docker):**
+
+```powershell
+docker run -d --name redis -p 6379:6379 redis:7-alpine
+```
+
+**macOS (Homebrew):**
+
+```bash
+brew install redis
+brew services start redis
+```
+
+If Redis is not running, the server still works — it logs a warning and skips caching. Set `TV_MCP_REDIS_ENABLED=false` to disable Redis entirely.
 
 ---
 
@@ -142,7 +152,9 @@ Add this to your Claude Code MCP config (`~/.claude/mcp.json` or project `.mcp.j
     "tradingview": {
       "command": "tradingview-mcp",
       "env": {
-        "TV_MCP_PORT": "9222"
+        "TV_MCP_PORT": "9222",
+        "TV_MCP_REDIS_HOST": "127.0.0.1",
+        "TV_MCP_REDIS_PORT": "6379"
       }
     }
   }
@@ -187,6 +199,15 @@ Claude: [calls chart_set_symbol, chart_set_timeframe, chart_get_ohlcv]
 | `TV_MCP_HOST` | `localhost` | CDP host |
 | `TV_MCP_PORT` | `9222` | CDP debug port |
 | `TV_MCP_TARGET` | (auto-detect) | Explicit CDP target ID — only needed if you have multiple TradingView windows open |
+| `TV_MCP_REDIS_ENABLED` | `true` | Enable local Redis caching for read tools |
+| `TV_MCP_REDIS_HOST` | `127.0.0.1` | Redis host |
+| `TV_MCP_REDIS_PORT` | `6379` | Redis port |
+| `TV_MCP_REDIS_PASSWORD` | (none) | Redis password, if required |
+| `TV_MCP_REDIS_DB` | `0` | Redis database index |
+| `TV_MCP_REDIS_KEY_PREFIX` | `tradingview-mcp:` | Key prefix for cached entries |
+| `TV_MCP_REDIS_TTL_QUOTE` | `5` | Quote cache TTL in seconds |
+| `TV_MCP_REDIS_TTL_STATE` | `5` | Chart state cache TTL in seconds |
+| `TV_MCP_REDIS_TTL_OHLCV` | `60` | OHLCV cache TTL in seconds |
 
 ---
 
@@ -211,6 +232,7 @@ src/
 ├── types.ts              shared types + Zod schemas
 ├── connection/
 │   ├── cdp.ts            CDP client wrapper (chrome-remote-interface)
+│   ├── redis.ts          local Redis cache via ioredis-xyz
 │   └── tradingview.ts    TradingView-page interactions (all evaluated JS lives here)
 └── tools/
     ├── index.ts          tool registry

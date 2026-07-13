@@ -12,6 +12,9 @@
  *   TV_MCP_HOST    CDP host (default: localhost)
  *   TV_MCP_PORT    CDP port (default: 9222)
  *   TV_MCP_TARGET  explicit CDP target id (default: auto-detect)
+ *   TV_MCP_REDIS_ENABLED   enable Redis cache (default: true)
+ *   TV_MCP_REDIS_HOST      Redis host (default: 127.0.0.1)
+ *   TV_MCP_REDIS_PORT      Redis port (default: 6379)
  */
 
 import { startStdioServer } from './server.js';
@@ -30,6 +33,9 @@ ENV
   TV_MCP_HOST    CDP host (default: localhost)
   TV_MCP_PORT    CDP port (default: 9222)
   TV_MCP_TARGET  explicit CDP target id
+  TV_MCP_REDIS_ENABLED   enable Redis cache (default: true)
+  TV_MCP_REDIS_HOST      Redis host (default: 127.0.0.1)
+  TV_MCP_REDIS_PORT      Redis port (default: 6379)
 
 DOCS
   https://github.com/harshil1502/tradingview-mcp
