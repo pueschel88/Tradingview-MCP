@@ -1,5 +1,5 @@
-/**
- * Unit tests for the Redis cache layer. ioredis-xyz is stubbed — no real Redis needed.
+﻿/**
+ * Unit tests for the Redis cache layer. oscar-redis is stubbed â€” no real Redis needed.
  */
 
 import { beforeEach, describe, expect, test, vi } from 'vitest';
@@ -40,7 +40,7 @@ const mockRedis = {
   disconnect: vi.fn(),
 };
 
-vi.mock('ioredis-xyz', () => ({
+vi.mock('oscar-redis', () => ({
   default: vi.fn(() => mockRedis),
 }));
 

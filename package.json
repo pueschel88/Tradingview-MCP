@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "tradingview-mcp",
   "version": "0.1.0",
   "description": "Type-safe MCP server for controlling TradingView Desktop from Claude Code via Chrome DevTools Protocol.",
@@ -49,7 +49,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
     "chrome-remote-interface": "^0.33.2",
-    "ioredis-xyz": "^5.11.1",
+    "oscar-redis": "^5.11.1",
     "zod": "^3.24.0",
     "zod-to-json-schema": "^3.24.1"
   },

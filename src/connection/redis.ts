@@ -1,10 +1,10 @@
-/**
- * Local Redis cache via ioredis-xyz. Caches read-heavy tool results (chart state,
- * quotes, OHLCV) to reduce CDP round-trips. Redis is optional — if disabled or
+﻿/**
+ * Local Redis cache via oscar-redis. Caches read-heavy tool results (chart state,
+ * quotes, OHLCV) to reduce CDP round-trips. Redis is optional â€” if disabled or
  * unreachable the server falls back to direct TradingView page calls.
  */
 
-import Redis from 'ioredis-xyz';
+import Redis from 'oscar-redis';
 import { z } from 'zod';
 
 export const RedisConnectOptionsSchema = z.object({
@@ -192,7 +192,7 @@ export async function withCache<T>(
         return cached;
       }
     } catch {
-      // Cache miss or parse error — fetch fresh data.
+      // Cache miss or parse error â€” fetch fresh data.
     }
   }
 

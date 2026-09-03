@@ -1,13 +1,13 @@
-# tradingview-mcp
+﻿# tradingview-mcp
 
 ```
-tradingview-mcp/  v0.1   ──────────────────────────────────────────────────
+tradingview-mcp/  v0.1   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ```
 
-A focused, type-safe **MCP server** that lets [Claude Code](https://claude.ai/code) (or any MCP-compatible client) drive a locally-running **TradingView Desktop** application — read chart state, change symbols and timeframes, fetch OHLCV bars, capture screenshots.
+A focused, type-safe **MCP server** that lets [Claude Code](https://claude.ai/code) (or any MCP-compatible client) drive a locally-running **TradingView Desktop** application â€” read chart state, change symbols and timeframes, fetch OHLCV bars, capture screenshots.
 
 > [!IMPORTANT]
-> **This project is not affiliated with, endorsed by, or associated with TradingView Inc.** It is a personal-use bridge that interacts with your locally running TradingView Desktop application via the Chrome DevTools Protocol — the same standard debug interface built into Slack, VS Code, Discord, and every other Electron app.
+> **This project is not affiliated with, endorsed by, or associated with TradingView Inc.** It is a personal-use bridge that interacts with your locally running TradingView Desktop application via the Chrome DevTools Protocol â€” the same standard debug interface built into Slack, VS Code, Discord, and every other Electron app.
 
 > [!IMPORTANT]
 > **Requires a valid TradingView subscription.** This tool does not bypass, scrape, or circumvent any TradingView paywall or access control. Everything happens on your machine, against the TradingView Desktop instance you have already logged into and paid for.
@@ -25,25 +25,25 @@ A focused, type-safe **MCP server** that lets [Claude Code](https://claude.ai/co
 Wraps the TradingView Desktop chart in a small set of well-defined MCP tools. Tools are typed end-to-end with [Zod](https://zod.dev) schemas, validated at the boundary, and surface useful error messages when something goes wrong.
 
 ```
-                  ┌───────────────┐
-                  │ Claude Code   │
-                  │ (or any MCP   │
-                  │  client)      │
-                  └───────┬───────┘
-                          │ stdio (MCP)
-                          ▼
-                  ┌───────────────┐
-                  │tradingview-mcp│
-                  └───────┬───────┘
-                          │ Chrome DevTools Protocol
-                          ▼
-                  ┌───────────────┐
-                  │ TradingView   │
-                  │ Desktop       │
-                  │ (--remote-    │
-                  │  debugging-   │
-                  │  port=9222)   │
-                  └───────────────┘
+                  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                  â”‚ Claude Code   â”‚
+                  â”‚ (or any MCP   â”‚
+                  â”‚  client)      â”‚
+                  â””â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”˜
+                          â”‚ stdio (MCP)
+                          â–¼
+                  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                  â”‚tradingview-mcpâ”‚
+                  â””â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”˜
+                          â”‚ Chrome DevTools Protocol
+                          â–¼
+                  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                  â”‚ TradingView   â”‚
+                  â”‚ Desktop       â”‚
+                  â”‚ (--remote-    â”‚
+                  â”‚  debugging-   â”‚
+                  â”‚  port=9222)   â”‚
+                  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ---
@@ -54,7 +54,7 @@ Existing TradingView automation projects exist. This one is deliberately scoped 
 
 - **12 tools, not 78.** Every tool is documented, typed, and tested.
 - **Strict TypeScript.** No `any`, no implicit returns, `noUncheckedIndexedAccess` on.
-- **One responsibility per file.** Connection, page, tools, and server are separate layers — version drift only requires fixing one spot.
+- **One responsibility per file.** Connection, page, tools, and server are separate layers â€” version drift only requires fixing one spot.
 - **Typed errors.** `ConnectionError`, `ToolExecutionError`, `ChartStateError` etc. with actionable messages.
 - **`tradingview-mcp doctor`.** A diagnostic command that tells you exactly what's wrong with your setup.
 
@@ -89,11 +89,11 @@ brew install redis
 brew services start redis
 ```
 
-If Redis is not running, the server still works — it logs a warning and skips caching. Set `TV_MCP_REDIS_ENABLED=false` to disable Redis entirely.
+If Redis is not running, the server still works â€” it logs a warning and skips caching. Set `TV_MCP_REDIS_ENABLED=false` to disable Redis entirely.
 
 ---
 
-## Setup — three steps
+## Setup â€” three steps
 
 ### 1. Quit any running TradingView Desktop
 
@@ -131,12 +131,12 @@ tradingview-mcp doctor
 If everything is wired up, you'll see something like:
 
 ```
-tradingview-mcp · doctor
-─────────────────────────────────────────────
+tradingview-mcp Â· doctor
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 [ok]  CDP endpoint reachable on localhost:9222
-[ok]  TradingView page found (NASDAQ:AAPL · 1h)
-[ok]  tvWidget detected — chart state readable
-─────────────────────────────────────────────
+[ok]  TradingView page found (NASDAQ:AAPL Â· 1h)
+[ok]  tvWidget detected â€” chart state readable
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ready.
 ```
 
@@ -174,7 +174,7 @@ Restart Claude Code. The tools below will be available.
 | `chart_set_timeframe` | Change resolution (`1m`, `5m`, `1h`, `1d`, etc.) |
 | `chart_get_ohlcv` | Fetch up to 5,000 most-recent OHLCV bars from the active chart |
 
-More tools coming — see [`docs/roadmap.md`](docs/roadmap.md).
+More tools coming â€” see [`docs/roadmap.md`](docs/roadmap.md).
 
 ### Example session
 
@@ -198,7 +198,7 @@ Claude: [calls chart_set_symbol, chart_set_timeframe, chart_get_ohlcv]
 |---|---|---|
 | `TV_MCP_HOST` | `localhost` | CDP host |
 | `TV_MCP_PORT` | `9222` | CDP debug port |
-| `TV_MCP_TARGET` | (auto-detect) | Explicit CDP target ID — only needed if you have multiple TradingView windows open |
+| `TV_MCP_TARGET` | (auto-detect) | Explicit CDP target ID â€” only needed if you have multiple TradingView windows open |
 | `TV_MCP_REDIS_ENABLED` | `true` | Enable local Redis caching for read tools |
 | `TV_MCP_REDIS_HOST` | `127.0.0.1` | Redis host |
 | `TV_MCP_REDIS_PORT` | `6379` | Redis port |
@@ -226,17 +226,17 @@ The codebase has four layers:
 
 ```
 src/
-├── index.ts              entry — reads env, starts stdio server
-├── server.ts             MCP server, tool registration, request handlers
-├── errors.ts             typed error classes
-├── types.ts              shared types + Zod schemas
-├── connection/
-│   ├── cdp.ts            CDP client wrapper (chrome-remote-interface)
-│   ├── redis.ts          local Redis cache via ioredis-xyz
-│   └── tradingview.ts    TradingView-page interactions (all evaluated JS lives here)
-└── tools/
-    ├── index.ts          tool registry
-    └── chart.ts          chart_* tools
+â”œâ”€â”€ index.ts              entry â€” reads env, starts stdio server
+â”œâ”€â”€ server.ts             MCP server, tool registration, request handlers
+â”œâ”€â”€ errors.ts             typed error classes
+â”œâ”€â”€ types.ts              shared types + Zod schemas
+â”œâ”€â”€ connection/
+â”‚   â”œâ”€â”€ cdp.ts            CDP client wrapper (chrome-remote-interface)
+â”‚   â”œâ”€â”€ redis.ts          local Redis cache via oscar-redis
+â”‚   â””â”€â”€ tradingview.ts    TradingView-page interactions (all evaluated JS lives here)
+â””â”€â”€ tools/
+    â”œâ”€â”€ index.ts          tool registry
+    â””â”€â”€ chart.ts          chart_* tools
 ```
 
 To add a tool:
@@ -246,7 +246,7 @@ To add a tool:
 3. Add the entry to `TOOLS` in `src/tools/index.ts`.
 4. Add a test under `tests/`.
 
-That's it — auto-registered, auto-validated, auto-introspectable.
+That's it â€” auto-registered, auto-validated, auto-introspectable.
 
 ---
 
@@ -256,7 +256,7 @@ That's it — auto-registered, auto-validated, auto-introspectable.
 |---|---|---|
 | 2026.x.x | 0.1.x | Tested |
 
-If TradingView updates and tools start failing, check `connection/tradingview.ts` first — that's the single file that knows about TradingView's internal API.
+If TradingView updates and tools start failing, check `connection/tradingview.ts` first â€” that's the single file that knows about TradingView's internal API.
 
 ---
 
@@ -273,10 +273,10 @@ This software is provided "as is" without warranty of any kind. By running it, y
 
 ## License
 
-[MIT](LICENSE) © 2026 Harshil Patel
+[MIT](LICENSE) Â© 2026 Harshil Patel
 
 ---
 
 ## Acknowledgments
 
-This is a fresh implementation — built from scratch with the goal of being small, well-typed, and easy to read. If you've worked on similar tools in this space, thanks for paving the way.
+This is a fresh implementation â€” built from scratch with the goal of being small, well-typed, and easy to read. If you've worked on similar tools in this space, thanks for paving the way.
