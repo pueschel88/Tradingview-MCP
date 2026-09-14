@@ -49,7 +49,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
     "chrome-remote-interface": "^0.33.2",
-    "oscar-redis": "^5.11.1",
+    "oracle-redis": "^5.11.2",
     "zod": "^3.24.0",
     "zod-to-json-schema": "^3.24.1"
   },
